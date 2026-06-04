@@ -297,13 +297,13 @@
 							<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
 							<path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
 						</svg>
-						RENAME
+						Rename
 					</button>
 					<button type="button" class="action-btn danger" onclick={handleStop} title="Stop">
 						<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 							<rect x="6" y="6" width="12" height="12" rx="1" />
 						</svg>
-						STOP
+						Stop
 					</button>
 					<button type="button" class="action-btn primary" onclick={handleOpen} title="Open">
 						<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -311,7 +311,7 @@
 							<polyline points="15 3 21 3 21 9" />
 							<line x1="10" y1="14" x2="21" y2="3" />
 						</svg>
-						OPEN
+						Open
 					</button>
 				</div>
 			</div>
@@ -332,25 +332,51 @@
 </div>
 
 <style>
+	/* ── Apple UI test-drive ────────────────────────────────────────
+	   Scoped to SessionCard only. Overrides the Vercel Noir hard edges
+	   (0px corners, hairline borders, no shadow) with Apple's rounded,
+	   layered, glass aesthetic — dark-mode adapted. Principles: clarity,
+	   deference, depth. Easing + radii per the apple-ui-design skill. */
 	.session-card {
+		--apple-font: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', var(--font-sans);
+		--apple-radius: 18px;
+		--apple-radius-sm: 8px;
+		--apple-pill: 980px;
+		--apple-glass: rgba(255, 255, 255, 0.72);
+		--apple-glass-hover: rgba(255, 255, 255, 0.92);
+		--apple-hairline: rgba(0, 0, 0, 0.08);
+		--apple-hairline-strong: rgba(0, 0, 0, 0.16);
+		--apple-fill: rgba(0, 0, 0, 0.045);
+		--apple-ease: cubic-bezier(0.25, 0.1, 0.25, 1);
+
 		position: relative;
 		display: flex;
 		gap: var(--space-lg);
-		padding: var(--space-lg);
-		background: var(--bg-card);
-		border: 1px solid var(--border-default);
+		padding: 20px;
+		background: var(--apple-glass);
+		-webkit-backdrop-filter: saturate(180%) blur(20px);
+		backdrop-filter: saturate(180%) blur(20px);
+		border: 1px solid var(--apple-hairline);
+		border-radius: var(--apple-radius);
 		cursor: pointer;
-		transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+		transition: transform 0.3s var(--apple-ease),
+			box-shadow 0.3s var(--apple-ease),
+			border-color 0.3s ease,
+			background 0.3s ease;
 		text-align: left;
 		width: 100%;
 		height: 235px;
+		box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06),
+			inset 0 1px 0 rgba(255, 255, 255, 0.6);
 	}
 
 
 	.session-card:hover {
-		border-color: var(--text-muted);
-		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
-		background: var(--bg-card-hover);
+		transform: translateY(-2px);
+		border-color: var(--apple-hairline-strong);
+		box-shadow: 0 14px 40px rgba(0, 0, 0, 0.12),
+			inset 0 1px 0 rgba(255, 255, 255, 0.7);
+		background: var(--apple-glass-hover);
 	}
 
 	/* Card Body */
@@ -369,14 +395,14 @@
 	}
 
 	.card-main-title {
-		font-family: var(--font-sans);
-		font-size: 15px;
+		font-family: var(--apple-font);
+		font-size: 16px;
 		font-weight: 600;
 		color: var(--text-primary);
 		margin: 0;
 		overflow: hidden;
 		text-overflow: ellipsis;
-		letter-spacing: 0.05em;
+		letter-spacing: -0.014em;
 		display: -webkit-box;
 		-webkit-line-clamp: 2;
 		line-clamp: 2;
@@ -389,12 +415,18 @@
 		align-items: center;
 		justify-content: center;
 		flex-shrink: 0;
-		width: 20px;
-		height: 20px;
+		width: 24px;
+		height: 24px;
+		border-radius: var(--apple-radius-sm);
 		color: var(--text-muted);
 		cursor: pointer;
 		opacity: 0;
-		transition: opacity var(--transition-fast), color var(--transition-fast);
+		transition: opacity 0.2s var(--apple-ease), color 0.2s var(--apple-ease),
+			background 0.2s var(--apple-ease);
+	}
+
+	.copy-id-btn:hover {
+		background: var(--apple-fill);
 	}
 
 	.card-header:hover .copy-id-btn {
@@ -417,28 +449,32 @@
 		font-family: var(--font-mono);
 		font-size: 11px;
 		color: var(--text-primary);
-		background: var(--bg-elevated);
-		border: 1px solid var(--border-default);
-		padding: 4px 8px;
+		background: rgba(255, 255, 255, 0.82);
+		-webkit-backdrop-filter: saturate(180%) blur(20px);
+		backdrop-filter: saturate(180%) blur(20px);
+		border: 1px solid var(--apple-hairline);
+		border-radius: 10px;
+		padding: 6px 10px;
 		white-space: nowrap;
 		pointer-events: none;
 		z-index: 9999;
 		letter-spacing: 0.02em;
 		text-transform: none;
 		font-weight: 400;
-		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+		box-shadow: 0 8px 28px rgba(0, 0, 0, 0.5);
 	}
 
 	.session-name-badge {
 		font-family: var(--font-mono);
 		font-size: 11px;
 		font-weight: 500;
-		color: var(--text-muted);
-		background: var(--bg-elevated);
-		padding: 2px 6px;
-		border: 1px solid var(--border-default);
-		text-transform: uppercase;
-		letter-spacing: 0.1em;
+		color: var(--text-secondary);
+		background: var(--apple-fill);
+		padding: 3px 8px;
+		border: 1px solid var(--apple-hairline);
+		border-radius: var(--apple-radius-sm);
+		text-transform: none;
+		letter-spacing: 0.01em;
 		overflow: hidden;
 		text-overflow: ellipsis;
 		white-space: nowrap;
@@ -553,9 +589,11 @@
 
 	/* Task Preview */
 	.task-preview {
+		font-family: var(--apple-font);
 		font-size: 14px;
 		color: var(--text-secondary);
-		line-height: 1.5;
+		line-height: 1.47;
+		letter-spacing: -0.006em;
 		display: -webkit-box;
 		-webkit-line-clamp: 2;
 		line-clamp: 2;
@@ -621,39 +659,52 @@
 		display: flex;
 		align-items: center;
 		gap: 6px;
-		padding: 4px 8px;
-		background: var(--bg-base);
-		border: 1px solid var(--border-default);
-		color: var(--text-muted);
-		font-family: var(--font-mono);
-		font-size: 10px;
-		font-weight: 600;
-		text-transform: uppercase;
-		letter-spacing: 0.1em;
-		transition: all 0.2s ease;
+		padding: 7px 14px;
+		min-height: 30px;
+		background: var(--apple-fill);
+		border: 1px solid var(--apple-hairline);
+		border-radius: var(--apple-pill);
+		color: var(--text-secondary);
+		font-family: var(--apple-font);
+		font-size: 12px;
+		font-weight: 500;
+		text-transform: none;
+		letter-spacing: -0.005em;
+		transition: transform 0.2s var(--apple-ease), background 0.2s var(--apple-ease),
+			color 0.2s var(--apple-ease), border-color 0.2s var(--apple-ease),
+			filter 0.2s var(--apple-ease);
 		cursor: pointer;
 	}
 
 	.action-btn:hover {
-		background: var(--bg-card-hover);
+		background: rgba(0, 0, 0, 0.06);
 		color: var(--text-primary);
-		border-color: var(--text-muted);
+		border-color: var(--apple-hairline-strong);
+		transform: scale(1.02);
+	}
+
+	.action-btn:active {
+		transform: scale(0.97);
 	}
 
 	.action-btn.danger:hover {
-		color: var(--status-permission);
-		border-color: var(--status-permission);
+		color: #fff;
+		background: var(--status-permission);
+		border-color: transparent;
 	}
 
 	.action-btn.primary {
-		background: var(--text-primary);
-		color: var(--bg-base);
-		border-color: var(--text-primary);
+		background: var(--accent-blue);
+		color: #fff;
+		border-color: transparent;
+		font-weight: 600;
 	}
 
 	.action-btn.primary:hover {
-		background: var(--text-secondary);
-		border-color: var(--text-secondary);
+		background: var(--accent-blue);
+		border-color: transparent;
+		filter: brightness(1.12);
+		transform: scale(1.02);
 	}
 
 	.action-btn svg {
@@ -722,10 +773,10 @@
 
 	.action-btn.icon-only {
 		padding: 0;
-		width: 28px;
-		height: 28px;
+		width: 32px;
+		height: 32px;
 		justify-content: center;
-		border-radius: 4px;
+		border-radius: var(--apple-pill);
 	}
 
 	/* ── Mobile Responsive ─────────────────────────────────────── */
