@@ -25,6 +25,12 @@ pub fn open_session(pid: u32, project_path: String) -> Result<(), String> {
         return focus_iterm2_session(pid);
     }
 
+    // macOS Terminal.app: match tty to focus the exact tab/window
+    #[cfg(target_os = "macos")]
+    if app_name == "Terminal" {
+        return focus_terminal_app_session(pid);
+    }
+
     // JetBrains IDEs: use URL scheme to focus the correct project window
     if is_jetbrains_ide(&app_name) {
         return focus_jetbrains_window(&app_name, &project_path);
@@ -163,6 +169,74 @@ fn focus_iterm2_session(pid: u32) -> Result<(), String> {
 
     let result = String::from_utf8_lossy(&output.stdout).trim().to_string();
     crate::debug_log::log_info(&format!("[open_session] iTerm2 tty match result: {}", result));
+
+    Ok(())
+}
+
+/// Focus the correct macOS Terminal.app tab/window by matching tty.
+///
+/// Terminal.app exposes `tty` and `selected` on each tab, so — exactly like the
+/// iTerm2 path — we walk windows/tabs, match the session's controlling tty,
+/// select that tab and bring its window to the front. Some entries in `windows`
+/// aren't terminal windows (e.g. the Settings window) and throw on `tabs of w`,
+/// so each window access is wrapped in a `try`. Falls back to a plain app
+/// activate when no tty is found or no tab matches.
+#[cfg(target_os = "macos")]
+fn focus_terminal_app_session(pid: u32) -> Result<(), String> {
+    let tty = get_session_tty(pid);
+    crate::debug_log::log_info(&format!(
+        "[open_session] Terminal tty for PID {}: {:?}",
+        pid, tty
+    ));
+
+    let Some(tty) = tty else {
+        // No tty found — just bring Terminal forward.
+        return activate_app_fallback("Terminal");
+    };
+
+    // AppleScript: iterate all Terminal windows/tabs, match by tty, select the
+    // tab and raise its window. `tty of t` returns "/dev/ttysNNN"; get_session_tty
+    // yields "ttysNNN", so `ends with` matches (same convention as iTerm2).
+    let script = format!(
+        r#"
+        tell application "Terminal"
+            activate
+            set didFind to "not found"
+            repeat with w in windows
+                try
+                    repeat with t in tabs of w
+                        try
+                            if tty of t ends with "{tty}" then
+                                set selected of t to true
+                                set frontmost of w to true
+                                set didFind to "found"
+                            end if
+                        end try
+                    end repeat
+                end try
+            end repeat
+            return didFind
+        end tell
+        "#,
+        tty = tty
+    );
+
+    let output = Command::new("osascript")
+        .arg("-e")
+        .arg(&script)
+        .output()
+        .map_err(|e| format!("Failed to run AppleScript: {}", e))?;
+
+    let result = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    crate::debug_log::log_info(&format!(
+        "[open_session] Terminal tty match result: {}",
+        result
+    ));
+
+    // If nothing matched, at least bring Terminal to the front.
+    if result != "found" {
+        return activate_app_fallback("Terminal");
+    }
 
     Ok(())
 }
