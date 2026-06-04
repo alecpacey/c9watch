@@ -1,18 +1,19 @@
 #!/usr/bin/env bash
 #
-# c9watch installer
+# c9watch installer — alecpacey fork (Light Edition)
 #
 # Usage:
-#   curl -fsSL https://raw.githubusercontent.com/minchenlee/c9watch/main/install.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/alecpacey/c9watch/local-customizations/install.sh | bash
 #
 # This script:
 #   1. Detects your Mac's architecture (Apple Silicon or Intel)
-#   2. Downloads the latest signed DMG from GitHub
-#   3. Installs c9watch.app to /Applications
+#   2. Downloads the latest DMG from this fork's GitHub releases
+#   3. Installs c9watch.app to /Applications (no Gatekeeper prompt — curl-downloaded
+#      apps aren't quarantined, unlike a manual browser download of the .dmg)
 #
 set -euo pipefail
 
-REPO="minchenlee/c9watch"
+REPO="alecpacey/c9watch"
 APP_NAME="c9watch"
 INSTALL_DIR="/Applications"
 
@@ -52,9 +53,18 @@ fi
 
 info "Latest version: ${LATEST_TAG}"
 
-# --- Download ---
+# --- Download (find the .dmg asset for this arch on the latest release) ---
 
-DOWNLOAD_URL="https://github.com/${REPO}/releases/download/${LATEST_TAG}/${APP_NAME}_${LATEST_TAG}_${ARCH_LABEL}.dmg"
+DOWNLOAD_URL=$(curl -fsSL "https://api.github.com/repos/${REPO}/releases/latest" \
+  | grep '"browser_download_url":' \
+  | grep "_${ARCH_LABEL}.dmg" \
+  | head -1 \
+  | cut -d'"' -f4)
+
+if [ -z "$DOWNLOAD_URL" ]; then
+  error "No ${ARCH_LABEL} .dmg found on the latest release of ${REPO}. See https://github.com/${REPO}/releases"
+fi
+
 TMPDIR=$(mktemp -d)
 trap 'rm -rf "$TMPDIR"' EXIT
 

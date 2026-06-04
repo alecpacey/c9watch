@@ -40,25 +40,27 @@ Built with **Tauri**, **Rust**, and **Svelte** -- not Electron. The app binary i
 
 ## Install
 
-> **For this fork:** the `curl` installers below fetch **upstream's** released app, which doesn't include the fork changes. To run this fork, use **[Build from source](#build-from-source)** — it builds from the `local-customizations` branch.
-
-### Desktop app (macOS)
+### Desktop app (macOS) — one-liner ✨ (recommended)
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/minchenlee/c9watch/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/alecpacey/c9watch/local-customizations/install.sh | bash
 ```
 
-This installs the app to `/Applications` and symlinks the CLI to `~/.local/bin/c9watch`, so both the GUI and `c9watch list`, `c9watch view`, etc. work out of the box.
+Installs **this fork's** `c9watch.app` to `/Applications` and symlinks the CLI to `~/.local/bin/c9watch`, so both the GUI and `c9watch list`, `c9watch view`, etc. work out of the box. Because the app is fetched with `curl` (not a browser), macOS does **not** quarantine it — it launches without a Gatekeeper prompt.
 
-Or grab the latest `.dmg` from the [Releases](https://github.com/minchenlee/c9watch/releases) page (you'll need to symlink the CLI manually: `ln -s /Applications/c9watch.app/Contents/MacOS/c9watch ~/.local/bin/c9watch`).
+### Desktop app (macOS) — manual `.dmg`
 
-### CLI only (macOS & Linux)
+Download the latest `.dmg` from the [Releases](https://github.com/alecpacey/c9watch/releases) page and drag `c9watch.app` into `/Applications`.
 
-```bash
-curl -fsSL https://raw.githubusercontent.com/minchenlee/c9watch/main/install-cli.sh | bash
-```
+> ⚠️ **Gatekeeper:** this fork is ad-hoc signed, not Apple-notarized. A `.dmg` downloaded in a **browser** gets quarantined, so the first launch is blocked. Either **right-click the app → Open** (once), or clear the flag:
+> ```bash
+> xattr -dr com.apple.quarantine /Applications/c9watch.app
+> ```
+> The one-liner above avoids this entirely.
 
-Installs to `~/.local/bin` by default. Use `| bash -s -- --global` to install to `/usr/local/bin` instead.
+### CLI
+
+The desktop installer above already symlinks the `c9watch` CLI. For a standalone CLI build (no Node/Tauri needed), see [Build from source](#build-from-source).
 
 ### Build from source
 
@@ -79,6 +81,22 @@ cd src-tauri
 cargo build --release --no-default-features --features cli
 # Binary → target/release/c9watch
 ```
+
+## Share this fork
+
+Want someone else to run the exact same build? Two easy ways:
+
+**1. The one-liner** — they paste this into a terminal and it installs your app, no Gatekeeper prompt:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/alecpacey/c9watch/local-customizations/install.sh | bash
+```
+
+**2. Let their Claude Code build it** — share the repo link with this prompt:
+
+> *Install this customized Claude Code session monitor on my Mac: clone `https://github.com/alecpacey/c9watch` (branch `local-customizations`), run `npm install` then `npm run tauri build`, and move the built `c9watch.app` into `/Applications`. Install Rust and Node first if they're missing.*
+
+Either way they get this fork — light theme, accurate status, and exact-tab Open. Repo: **https://github.com/alecpacey/c9watch**
 
 ## Screenshots
 
