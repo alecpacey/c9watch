@@ -6,9 +6,21 @@
 
 <p align="center">Monitor and control all your Claude Code sessions — built for both humans and agents.</p>
 
+<p align="center"><i>alecpacey's fork — light theme + reliability fixes</i></p>
+
+> **Personal fork** of [c9watch](https://github.com/minchenlee/c9watch) by [@minchenlee](https://github.com/minchenlee) — reskinned light, with three reliability fixes. Everything below is upstream's excellent work; my changes are summarized in **[What's different in this fork](#whats-different-in-this-fork)** and live on the `local-customizations` branch.
+
 **c9watch** (short for **c**laude cod**e** watch, like k8s for Kubernetes) gives you a real-time view of every Claude Code session running on your machine. A **desktop dashboard** for you, and a **JSON CLI** for your agents — both watching the same sessions at the same time.
 
 You see which agent needs permission, which one is working, and which one is idle. Your agents can do the same — querying session status, searching past work, and coordinating with each other — all through the same tool.
+
+## What's different in this fork
+
+A light reskin and three reliability fixes on top of upstream:
+
+- **🍎 Light Apple theme** — flipped from the original true-black "Vercel Noir" to a clean Apple-light palette: soft `#f5f5f7` surfaces, SF Pro typography, rounded glass session cards, and pill buttons.
+- **✅ Accurate Monitor status** — fixes actively-working sessions being mislabeled as *"Approval Required."* A live `busy` signal now corrects the false verdict, while genuine prompts (which leave the session idle) still surface correctly. <sub>`merge_cli_activity` · `src-tauri/src/session/enrichment.rs`</sub>
+- **🎯 Exact-tab Open for Terminal.app** — the **Open** button now jumps to the session's precise Terminal tab/window by matching its TTY, instead of just raising the app. <sub>`focus_terminal_app_session` · `src-tauri/src/actions.rs` · needs Automation→Terminal permission</sub>
 
 ## Demo
 
@@ -27,6 +39,8 @@ Just open c9watch and see everything.
 Built with **Tauri**, **Rust**, and **Svelte** -- not Electron. The app binary is small, memory usage is minimal, and the UI stays snappy. Rust handles process scanning and file parsing at native speed. Svelte compiles away the framework overhead. You're already running multiple Claude Code agents eating up resources -- your monitoring tool shouldn't add to the pile.
 
 ## Install
+
+> **For this fork:** the `curl` installers below fetch **upstream's** released app, which doesn't include the fork changes. To run this fork, use **[Build from source](#build-from-source)** — it builds from the `local-customizations` branch.
 
 ### Desktop app (macOS)
 
@@ -51,10 +65,11 @@ Installs to `~/.local/bin` by default. Use `| bash -s -- --global` to install to
 Prerequisites: [Rust](https://rustup.rs/), [Node.js](https://nodejs.org/) (v18+), and the [Tauri CLI](https://v2.tauri.app/start/prerequisites/).
 
 ```bash
-git clone https://github.com/minchenlee/c9watch.git
+git clone -b local-customizations https://github.com/alecpacey/c9watch.git
 cd c9watch
 npm install
 npm run tauri build       # Desktop app → src-tauri/target/release/bundle/macos/
+# then drop the built c9watch.app into /Applications to install it
 ```
 
 To build just the CLI (no Node.js or Tauri CLI needed):
