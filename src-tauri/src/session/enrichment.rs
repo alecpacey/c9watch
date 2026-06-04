@@ -77,14 +77,23 @@ pub(crate) fn get_cached_native_title(path: &Path) -> Option<String> {
 
 /// Combines the existing heuristic-based SessionStatus with the CLI activity signal.
 ///
-/// CLI activity NEVER overrides NeedsAttention or Connecting — those stay driven by
-/// JSONL content + PermissionChecker. It only refines Working vs WaitingForInput.
+/// A genuine permission/question prompt leaves the session IDLE — Claude is not
+/// generating while it waits on the user. So a live `busy` signal is authoritative
+/// proof the session is NOT waiting: a heuristic NeedsAttention paired with `busy`
+/// is a false positive (commonly a running Task subagent or an auto-approved
+/// tool-use that looks like a pending permission in the JSONL), and we promote it
+/// to Working. When the CLI reports Idle/None we keep NeedsAttention so real
+/// prompts are never hidden. Connecting stays driven by JSONL + PermissionChecker.
 pub fn merge_cli_activity(
     heuristic: SessionStatus,
     cli: Option<CliActivity>,
     has_pending_tool: bool,
 ) -> SessionStatus {
     match (heuristic, cli) {
+        // Busy ⇒ actively generating ⇒ cannot be waiting on the user. Correct the
+        // false "Approval Required" that the JSONL heuristic raises for in-flight
+        // tool executions (esp. Task subagents).
+        (SessionStatus::NeedsAttention, Some(CliActivity::Busy)) => SessionStatus::Working,
         (SessionStatus::NeedsAttention, _) => SessionStatus::NeedsAttention,
         (SessionStatus::Connecting, _) => SessionStatus::Connecting,
         (heuristic, None) => heuristic,
@@ -498,16 +507,28 @@ mod merge_tests {
     use crate::session::SessionStatus;
 
     #[test]
-    fn merge_preserves_needs_attention_when_busy() {
+    fn merge_busy_promotes_needs_attention_to_working() {
+        // A busy session is generating, so it cannot be waiting on the user —
+        // a heuristic NeedsAttention here is a false positive (e.g. a running
+        // Task subagent) and must be corrected to Working.
         let merged =
             merge_cli_activity(SessionStatus::NeedsAttention, Some(CliActivity::Busy), false);
-        assert_eq!(merged, SessionStatus::NeedsAttention);
+        assert_eq!(merged, SessionStatus::Working);
     }
 
     #[test]
     fn merge_preserves_needs_attention_when_idle() {
+        // Real permission/question prompts leave the session idle — keep
+        // NeedsAttention so genuine prompts are never hidden.
         let merged =
             merge_cli_activity(SessionStatus::NeedsAttention, Some(CliActivity::Idle), false);
+        assert_eq!(merged, SessionStatus::NeedsAttention);
+    }
+
+    #[test]
+    fn merge_preserves_needs_attention_when_no_cli_signal() {
+        // Legacy backend (no CLI activity) must not lose real prompts.
+        let merged = merge_cli_activity(SessionStatus::NeedsAttention, None, false);
         assert_eq!(merged, SessionStatus::NeedsAttention);
     }
 
