@@ -33,6 +33,23 @@ fn default_kind() -> String {
     "interactive".to_string()
 }
 
+/// Parse `claude agents --json` output tolerantly.
+///
+/// The outer value must be a valid JSON array, but individual entries that don't
+/// fit the interactive-session shape are skipped rather than failing the whole
+/// batch. Notably, **background-pinned agents** (`kind:"background"`) carry no
+/// `pid` and use `state` instead of `status`; before this, a single such entry
+/// raised `missing field pid` and broke ALL CLI detection (which then silently
+/// downgraded the GUI to the legacy backend after repeated failures).
+fn parse_agents(buf: &[u8]) -> Result<Vec<CliAgent>, SessionDetectorError> {
+    let raw: Vec<serde_json::Value> =
+        serde_json::from_slice(buf).map_err(|e| SessionDetectorError::Parse(e.to_string()))?;
+    Ok(raw
+        .into_iter()
+        .filter_map(|v| serde_json::from_value::<CliAgent>(v).ok())
+        .collect())
+}
+
 pub struct CliSessionSource {
     claude_bin: PathBuf,
     path_cache: HashMap<String, PathBuf>,
@@ -133,8 +150,7 @@ impl SessionSource for CliSessionSource {
             )));
         }
 
-        let agents: Vec<CliAgent> = serde_json::from_slice(&buf)
-            .map_err(|e| SessionDetectorError::Parse(e.to_string()))?;
+        let agents = parse_agents(&buf)?;
 
         // Filter out non-CLI entrypoints (e.g. sdk-ts from Zed/IDE integrations).
         // `claude agents --json` lists every live agent including SDK-driven ones,
@@ -246,6 +262,21 @@ mod tests {
         assert_eq!(agents[0].pid, 1);
         assert_eq!(agents[0].session_id, "sid-a");
         assert_eq!(agents[1].name.as_deref(), Some("my-bg"));
+    }
+
+    #[test]
+    fn parse_agents_skips_pidless_background_entry() {
+        // A real background-pinned agent: no `pid`, `state` instead of `status`.
+        // It must be skipped, not fail the whole batch (regression for the
+        // `missing field pid` break that downgraded the GUI to legacy detection).
+        let buf = br#"[
+          {"id":"bg","cwd":"/x","kind":"background","startedAt":1,"sessionId":"bg-1","state":"blocked"},
+          {"pid":123,"cwd":"/y","kind":"interactive","startedAt":2,"sessionId":"ok-1","status":"busy"}
+        ]"#;
+        let agents = parse_agents(buf).unwrap();
+        assert_eq!(agents.len(), 1, "pid-less background entry must be skipped");
+        assert_eq!(agents[0].pid, 123);
+        assert_eq!(agents[0].session_id, "ok-1");
     }
 
     #[test]
