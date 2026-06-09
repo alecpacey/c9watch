@@ -310,6 +310,16 @@ fn are_pending_tools_auto_approved(content: &[MessageContent]) -> bool {
                 continue;
             }
 
+            // Subagent spawns (the Agent / Task tool) never prompt for user
+            // permission — a running subagent is execution, not an approval wait.
+            // Without this, a session running e.g. a GSD sub-agent shows
+            // "Approval Required" instead of Working while the parent sits idle
+            // waiting on the child. (Raw JSONL name is "Agent", "Task" on some CC
+            // versions — same set as subagents::SUBAGENT_TOOL_NAMES.)
+            if name == "Agent" || name == "Task" {
+                continue;
+            }
+
             // This tool is pending - check if it's auto-approved
             if !checker.is_auto_approved(name, input) {
                 // Found a tool that needs permission
@@ -643,6 +653,32 @@ mod tests {
             },
         }];
         assert_eq!(determine_status(&entries), SessionStatus::NeedsAttention);
+    }
+
+    #[test]
+    fn test_pending_subagent_is_working_not_needs_attention() {
+        // A pending Agent (subagent) tool is execution, not a permission wait — a
+        // session running a GSD sub-agent must show Working, not "Approval Required".
+        let entries = vec![SessionEntry::Assistant {
+            base: create_base(),
+            message: AssistantMessage {
+                model: "claude-opus-4-5-20251101".to_string(),
+                id: "msg_test".to_string(),
+                role: "assistant".to_string(),
+                content: vec![MessageContent::ToolUse {
+                    id: "toolu_agent".to_string(),
+                    name: "Agent".to_string(),
+                    input: serde_json::json!({
+                        "subagent_type": "gsd-phase-researcher",
+                        "description": "Research Phase 4"
+                    }),
+                }],
+                stop_reason: Some("tool_use".to_string()),
+                stop_sequence: None,
+                usage: None,
+            },
+        }];
+        assert_eq!(determine_status(&entries), SessionStatus::Working);
     }
 
     #[test]
